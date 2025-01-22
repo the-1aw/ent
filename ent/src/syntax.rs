@@ -71,6 +71,14 @@ impl<'a> Scanner<'a> {
             '+' => Ok(Some(Token::new(TokenType::Plus, "", 0))),
             ';' => Ok(Some(Token::new(TokenType::Semicolon, "", 0))),
             '*' => Ok(Some(Token::new(TokenType::Star, "", 0))),
+            '/' => {
+                if self.src.next_if_eq(&'/').is_some() {
+                    while let Some(_) = self.src.next_if(|c| *c != '\n') {}
+                    Ok(None)
+                } else {
+                    Ok(Some(Token::new(TokenType::Slash, "", 0)))
+                }
+            }
             '!' => Ok(Some(Token::new(
                 if self.src.next_if_eq(&'=').is_none() {
                     TokenType::Bang
