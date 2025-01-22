@@ -1,0 +1,4 @@
+[workspace]
+members = ["ent"]
+
+resolver = "2"
