@@ -29,7 +29,7 @@ impl LexError {
 
 impl Error for LexError {}
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct TokenStream {
     tokens: Vec<Token>,
 }
@@ -50,6 +50,8 @@ struct Scanner<'a> {
     errors: Vec<LexError>,
 }
 
+type LexResult = Result<Option<Token>, LexError>;
+
 impl<'a> Scanner<'a> {
     pub fn new(src: &'a str) -> Self {
         Scanner {
@@ -59,7 +61,18 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    fn match_token(&mut self, ch: char) -> Result<Option<Token>, LexError> {
+    fn scan_string(&mut self) -> LexResult {
+        let is_not_str_end = |c: &char| *c != '"';
+        let src = self.src.clone();
+        while let Some(_) = self.src.next_if(is_not_str_end) {}
+        if let None = self.src.next() {
+            return Err(LexError::new(0, "Unterminated string".to_string()));
+        }
+        let str = String::from_iter(src.take_while(is_not_str_end));
+        Ok(Some(Token::new(TokenType::String(str), "", 0)))
+    }
+
+    fn match_token(&mut self, ch: char) -> LexResult {
         match ch {
             '(' => Ok(Some(Token::new(TokenType::LeftParen, "", 0))),
             ')' => Ok(Some(Token::new(TokenType::RightParen, "", 0))),
@@ -71,6 +84,7 @@ impl<'a> Scanner<'a> {
             '+' => Ok(Some(Token::new(TokenType::Plus, "", 0))),
             ';' => Ok(Some(Token::new(TokenType::Semicolon, "", 0))),
             '*' => Ok(Some(Token::new(TokenType::Star, "", 0))),
+            '"' => self.scan_string(),
             '/' => {
                 if self.src.next_if_eq(&'/').is_some() {
                     while let Some(_) = self.src.next_if(|c| *c != '\n') {}
