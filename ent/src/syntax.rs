@@ -72,8 +72,26 @@ impl<'a> Scanner<'a> {
         Ok(Some(Token::new(TokenType::String(str), "", 0)))
     }
 
-    fn match_token(&mut self, ch: char) -> LexResult {
-        match ch {
+    fn scan_number(&mut self, digit: char) -> LexResult {
+        let is_digit_or_dot = |c: &char| match *c {
+            '.' => true,
+            '0'..='9' => true,
+            _ => false,
+        };
+        let src = self.src.clone();
+        while let Some(_) = self.src.next_if(is_digit_or_dot) {}
+        let num_str = format!(
+            "{digit}{}",
+            String::from_iter(src.take_while(is_digit_or_dot))
+        );
+        match f64::from_str(&num_str) {
+            Ok(num) => Ok(Some(Token::new(TokenType::Number(num), "", 0))),
+            Err(_) => Err(LexError::new(0, "Invalid number".to_string())),
+        }
+    }
+
+    fn match_token(&mut self, c: char) -> LexResult {
+        match c {
             '(' => Ok(Some(Token::new(TokenType::LeftParen, "", 0))),
             ')' => Ok(Some(Token::new(TokenType::RightParen, "", 0))),
             '{' => Ok(Some(Token::new(TokenType::LeftBrace, "", 0))),
@@ -85,6 +103,7 @@ impl<'a> Scanner<'a> {
             ';' => Ok(Some(Token::new(TokenType::Semicolon, "", 0))),
             '*' => Ok(Some(Token::new(TokenType::Star, "", 0))),
             '"' => self.scan_string(),
+            '0'..='9' => self.scan_number(c),
             '/' => {
                 if self.src.next_if_eq(&'/').is_some() {
                     while let Some(_) = self.src.next_if(|c| *c != '\n') {}
