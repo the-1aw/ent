@@ -7,6 +7,7 @@ use std::{
 
 use token::{Token, TokenType};
 
+mod keywords;
 pub mod token;
 
 #[derive(Debug)]
@@ -90,6 +91,23 @@ impl<'a> Scanner<'a> {
         }
     }
 
+    fn is_identifier_char(c: char) -> bool {
+        c.is_alphanumeric() || c == '_'
+    }
+
+    fn scan_identifier(&mut self, c: char) -> LexResult {
+        let src = self.src.clone();
+        while let Some(_) = self.src.next_if(|c| Scanner::is_identifier_char(*c)) {}
+        let identifier = format!(
+            "{c}{}",
+            String::from_iter(src.take_while(|c| Scanner::is_identifier_char(*c)))
+        );
+        match keywords::match_reserved_word(&identifier) {
+            Some(symbol) => Ok(Some(Token::new(symbol, "", 0))),
+            None => Ok(Some(Token::new(TokenType::Identifier(identifier), "", 0))),
+        }
+    }
+
     fn match_token(&mut self, c: char) -> LexResult {
         match c {
             '(' => Ok(Some(Token::new(TokenType::LeftParen, "", 0))),
@@ -103,7 +121,6 @@ impl<'a> Scanner<'a> {
             ';' => Ok(Some(Token::new(TokenType::Semicolon, "", 0))),
             '*' => Ok(Some(Token::new(TokenType::Star, "", 0))),
             '"' => self.scan_string(),
-            '0'..='9' => self.scan_number(c),
             '/' => {
                 if self.src.next_if_eq(&'/').is_some() {
                     while let Some(_) = self.src.next_if(|c| *c != '\n') {}
@@ -149,6 +166,8 @@ impl<'a> Scanner<'a> {
                 0,
             ))),
             ' ' | '\r' | '\t' | '\n' => Ok(None),
+            c if c.is_ascii_digit() => self.scan_number(c),
+            c if Scanner::is_identifier_char(c) => self.scan_identifier(c),
             c => Err(LexError::new(0, format!("Unknown token {c}"))),
         }
     }

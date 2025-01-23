@@ -59,7 +59,7 @@ pub enum TokenType {
 
     // Keywords.
     And,
-    Cloass,
+    Class,
     Else,
     False,
     Fun,
@@ -68,7 +68,7 @@ pub enum TokenType {
     Nil,
     Or,
     Print,
-    Retrun,
+    Return,
     Super,
     This,
     True,
