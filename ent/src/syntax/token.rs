@@ -3,27 +3,18 @@ use std::fmt::Display;
 #[derive(Debug, PartialEq)]
 pub struct Token {
     symbol: TokenType,
-    lexem: String,
     line: usize,
 }
 
 impl Token {
-    pub fn new(symbol: TokenType, lexem: &str, line: usize) -> Self {
-        Token {
-            symbol,
-            lexem: lexem.to_string(),
-            line,
-        }
+    pub fn new(symbol: TokenType, line: usize) -> Self {
+        Token { symbol, line }
     }
 }
 
 impl Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "symbol: {:?}, lexem: {}, line: {}",
-            self.symbol, self.lexem, self.line
-        )
+        write!(f, "symbol: {:?}, line: {}", self.symbol, self.line)
     }
 }
 

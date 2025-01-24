@@ -48,6 +48,7 @@ impl TokenStream {
 struct Scanner<'a> {
     src: Peekable<Chars<'a>>,
     token_stream: TokenStream,
+    current_line: usize,
     errors: Vec<LexError>,
 }
 
@@ -59,18 +60,27 @@ impl<'a> Scanner<'a> {
             src: src.chars().peekable(),
             token_stream: TokenStream::new(),
             errors: Vec::new(),
+            current_line: 1,
         }
     }
 
     fn scan_string(&mut self) -> LexResult {
         let is_not_str_end = |c: &char| *c != '"';
         let src = self.src.clone();
-        while let Some(_) = self.src.next_if(is_not_str_end) {}
+        let str_begining_line = self.current_line;
+        while let Some(c) = self.src.next_if(is_not_str_end) {
+            if c == '\n' {
+                self.current_line += 1
+            }
+        }
         if let None = self.src.next() {
-            return Err(LexError::new(0, "Unterminated string".to_string()));
+            return Err(LexError::new(
+                str_begining_line,
+                "Unterminated string".to_string(),
+            ));
         }
         let str = String::from_iter(src.take_while(is_not_str_end));
-        Ok(Some(Token::new(TokenType::String(str), "", 0)))
+        Ok(Some(Token::new(TokenType::String(str), str_begining_line)))
     }
 
     fn scan_number(&mut self, digit: char) -> LexResult {
@@ -86,8 +96,11 @@ impl<'a> Scanner<'a> {
             String::from_iter(src.take_while(is_digit_or_dot))
         );
         match f64::from_str(&num_str) {
-            Ok(num) => Ok(Some(Token::new(TokenType::Number(num), "", 0))),
-            Err(_) => Err(LexError::new(0, "Invalid number".to_string())),
+            Ok(num) => Ok(Some(Token::new(TokenType::Number(num), self.current_line))),
+            Err(_) => Err(LexError::new(
+                self.current_line,
+                "Invalid number".to_string(),
+            )),
         }
     }
 
@@ -103,30 +116,33 @@ impl<'a> Scanner<'a> {
             String::from_iter(src.take_while(|c| Scanner::is_identifier_char(*c)))
         );
         match keywords::match_reserved_word(&identifier) {
-            Some(symbol) => Ok(Some(Token::new(symbol, "", 0))),
-            None => Ok(Some(Token::new(TokenType::Identifier(identifier), "", 0))),
+            Some(symbol) => Ok(Some(Token::new(symbol, self.current_line))),
+            None => Ok(Some(Token::new(
+                TokenType::Identifier(identifier),
+                self.current_line,
+            ))),
         }
     }
 
     fn match_token(&mut self, c: char) -> LexResult {
         match c {
-            '(' => Ok(Some(Token::new(TokenType::LeftParen, "", 0))),
-            ')' => Ok(Some(Token::new(TokenType::RightParen, "", 0))),
-            '{' => Ok(Some(Token::new(TokenType::LeftBrace, "", 0))),
-            '}' => Ok(Some(Token::new(TokenType::RightBrace, "", 0))),
-            ',' => Ok(Some(Token::new(TokenType::Commma, "", 0))),
-            '.' => Ok(Some(Token::new(TokenType::Dot, "", 0))),
-            '-' => Ok(Some(Token::new(TokenType::Minus, "", 0))),
-            '+' => Ok(Some(Token::new(TokenType::Plus, "", 0))),
-            ';' => Ok(Some(Token::new(TokenType::Semicolon, "", 0))),
-            '*' => Ok(Some(Token::new(TokenType::Star, "", 0))),
+            '(' => Ok(Some(Token::new(TokenType::LeftParen, self.current_line))),
+            ')' => Ok(Some(Token::new(TokenType::RightParen, self.current_line))),
+            '{' => Ok(Some(Token::new(TokenType::LeftBrace, self.current_line))),
+            '}' => Ok(Some(Token::new(TokenType::RightBrace, self.current_line))),
+            ',' => Ok(Some(Token::new(TokenType::Commma, self.current_line))),
+            '.' => Ok(Some(Token::new(TokenType::Dot, self.current_line))),
+            '-' => Ok(Some(Token::new(TokenType::Minus, self.current_line))),
+            '+' => Ok(Some(Token::new(TokenType::Plus, self.current_line))),
+            ';' => Ok(Some(Token::new(TokenType::Semicolon, self.current_line))),
+            '*' => Ok(Some(Token::new(TokenType::Star, self.current_line))),
             '"' => self.scan_string(),
             '/' => {
                 if self.src.next_if_eq(&'/').is_some() {
                     while let Some(_) = self.src.next_if(|c| *c != '\n') {}
                     Ok(None)
                 } else {
-                    Ok(Some(Token::new(TokenType::Slash, "", 0)))
+                    Ok(Some(Token::new(TokenType::Slash, self.current_line)))
                 }
             }
             '!' => Ok(Some(Token::new(
@@ -135,8 +151,7 @@ impl<'a> Scanner<'a> {
                 } else {
                     TokenType::BangEqual
                 },
-                "",
-                0,
+                self.current_line,
             ))),
             '=' => Ok(Some(Token::new(
                 if self.src.next_if_eq(&'=').is_none() {
@@ -144,8 +159,7 @@ impl<'a> Scanner<'a> {
                 } else {
                     TokenType::EqualEqual
                 },
-                "",
-                0,
+                self.current_line,
             ))),
             '>' => Ok(Some(Token::new(
                 if self.src.next_if_eq(&'=').is_none() {
@@ -153,8 +167,7 @@ impl<'a> Scanner<'a> {
                 } else {
                     TokenType::GreaterEqual
                 },
-                "",
-                0,
+                self.current_line,
             ))),
             '<' => Ok(Some(Token::new(
                 if self.src.next_if_eq(&'=').is_none() {
@@ -162,13 +175,19 @@ impl<'a> Scanner<'a> {
                 } else {
                     TokenType::LessEqual
                 },
-                "",
-                0,
+                self.current_line,
             ))),
-            ' ' | '\r' | '\t' | '\n' => Ok(None),
+            '\n' => {
+                self.current_line += 1;
+                Ok(None)
+            }
+            ' ' | '\t' | '\r' => Ok(None),
             c if c.is_ascii_digit() => self.scan_number(c),
             c if Scanner::is_identifier_char(c) => self.scan_identifier(c),
-            c => Err(LexError::new(0, format!("Unknown token {c}"))),
+            c => Err(LexError::new(
+                self.current_line,
+                format!("Unknown token {c}"),
+            )),
         }
     }
 
