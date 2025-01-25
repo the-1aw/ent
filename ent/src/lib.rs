@@ -1,3 +1,9 @@
+// TODO:
+// Uncomment this line to force documentation
+// #![warn(missing_docs)]
+// Uncomment this line to force examples in documentation
+// #![warn(missing_doc_code_examples)]
+
 mod runtime;
 mod syntax;
 
