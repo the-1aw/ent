@@ -1,4 +1,4 @@
-use crate::syntax::token::TokenType;
+use crate::syntax::token_type::TokenType;
 
 pub fn match_reserved_word(keyword: &str) -> Option<TokenType> {
     match keyword {

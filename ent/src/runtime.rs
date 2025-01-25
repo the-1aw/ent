@@ -1,4 +1,4 @@
-use crate::syntax::token::Token;
+use crate::syntax::Token;
 
 pub fn run(tokens: Vec<Token>) {
     for token in tokens.iter() {
