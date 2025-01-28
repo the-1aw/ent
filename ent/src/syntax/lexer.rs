@@ -5,7 +5,7 @@ use std::{
 
 use crate::syntax::keywords;
 use crate::syntax::lexer_error::LexicalError;
-use crate::syntax::token_type::TokenType;
+use crate::syntax::token_type::{Literal, TokenType};
 use crate::syntax::{Token, TokenStream};
 
 pub struct Lexer<'a> {
@@ -43,7 +43,10 @@ impl<'a> Lexer<'a> {
             ));
         }
         let str = String::from_iter(src.take_while(is_not_str_end));
-        Ok(Some(Token::new(TokenType::String(str), str_begining_line)))
+        Ok(Some(Token::new(
+            TokenType::Literal(Literal::String(str)),
+            str_begining_line,
+        )))
     }
 
     fn scan_number(&mut self, digit: char) -> TokenScanResult {
@@ -59,7 +62,10 @@ impl<'a> Lexer<'a> {
             String::from_iter(src.take_while(is_digit_or_dot))
         );
         match f64::from_str(&num_str) {
-            Ok(num) => Ok(Some(Token::new(TokenType::Number(num), self.current_line))),
+            Ok(num) => Ok(Some(Token::new(
+                TokenType::Literal(Literal::Number(num)),
+                self.current_line,
+            ))),
             Err(_) => Err(LexicalError::new(
                 self.current_line,
                 "Invalid number".to_string(),

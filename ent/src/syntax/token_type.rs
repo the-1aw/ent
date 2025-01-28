@@ -1,3 +1,26 @@
+use std::fmt::Display;
+
+#[derive(Debug, PartialEq)]
+pub enum Literal {
+    String(String),
+    Number(f64),
+    False,
+    True,
+    Nil,
+}
+
+impl Display for Literal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::String(str) => write!(f, "{str}"),
+            Self::Number(num) => write!(f, "{num}"),
+            Self::False => write!(f, "false"),
+            Self::True => write!(f, "true"),
+            Self::Nil => write!(f, "nil"),
+        }
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub enum TokenType {
     // Single-character tokens.
@@ -24,25 +47,21 @@ pub enum TokenType {
     LessEqual,
 
     // Literals.
+    Literal(Literal),
     Identifier(String),
-    String(String),
-    Number(f64),
 
     // Keywords.
     And,
     Class,
     Else,
-    False,
     Fun,
     For,
     If,
-    Nil,
     Or,
     Print,
     Return,
     Super,
     This,
-    True,
     Var,
     While,
 

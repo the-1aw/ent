@@ -23,19 +23,23 @@ impl Display for Token {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::syntax::token_type::Literal;
 
     #[test]
     fn create_token() {
-        let symbol = TokenType::Number(1234.0);
-        let same_symbol = TokenType::Number(1234.0);
+        let symbol = TokenType::Literal(Literal::Number(1234.0));
+        let same_symbol = TokenType::Literal(Literal::Number(1234.0));
         let line = 2;
         assert!(Token { symbol, line } == Token::new(same_symbol, line))
     }
 
     #[test]
     fn fmt_token() {
-        let expected = "symbol: Number(1234.0), line: 2";
-        let actual = format!("{}", Token::new(TokenType::Number(1234.0), 2));
+        let expected = "symbol: Literal(Number(1234.0)), line: 2";
+        let actual = format!(
+            "{}",
+            Token::new(TokenType::Literal(Literal::Number(1234.0)), 2)
+        );
         assert_eq!(expected, actual)
     }
 }
